@@ -16,13 +16,13 @@ public class labb3 {
             System.out.println("\nVälj (6 för att visa val):");
             int action = Integer.parseInt(scanner.nextLine());
 
-            switch (action) {
+            switch (action) { // Todo lägga till case med statistik, räkna hur många av en regissör och kategori för sig och gemensamt, säkna hur många för ett betyg och längre än / kortare än
                 case 0 -> quit = isQuit();
-                case 1 -> selectMovie();
+                case 1 -> selectMovie(); // TODO här kan man välja olika filter, kategori, ange längd, betyg (ange lägst och högst), lägga ihop med cae 5?
                 case 2 -> insertMovie();
                 case 3 -> updateMovie();
                 case 4 -> deleteMovie();
-                case 5 -> searchMovie(); // TODO: metod att söka efter film, switch, visa  favoriter, visa kategori, sök efter producent, sök efter filmtitel
+                case 5 -> searchMovie(); // TODO: metod att söka efter specifik film, switch, sök efter regissör, sök efter filmtitel
                 case 6 -> printActions();
             }
 
@@ -65,7 +65,7 @@ public class labb3 {
 
 
     private static void selectMovie() {
-        selectAll(); // lägg in val, 1 välja alla 2, efter kategori, 3 efter Regissör, favoriter, söka efter titel,söka efter regissör
+        selectAll(); // lägg in val, 1 välja alla 2, efter kategori, 3 efter Regissör, favoriter,
     }
 
     private static void selectAll() {
