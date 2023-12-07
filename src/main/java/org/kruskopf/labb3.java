@@ -2,15 +2,14 @@ package org.kruskopf;
 
 import java.io.PrintStream;
 import java.sql.*;
-import java.util.InputMismatchException;
-import java.util.Scanner;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class labb3 {
     private static Scanner scanner;
-
     public static void main(String[] args) {
         boolean quit = false;
-
 
         while (!quit) {
             printActions();
@@ -18,17 +17,16 @@ public class labb3 {
 
             switch (action) {
                 case 0 -> quit = isQuit();
-                case 1 -> insertMovie();
+                case 1 -> insertMovieChoice();
                 case 2 -> selectMovie();
-                case 3 -> searchMovie(); // TODO: metod att söka efter specifik film, switch, sök efter regissör, sök efter filmtitel
+                case 3 -> searchMovie();
                 case 4 -> statistics();
                 case 5 -> updateMovie();
                 case 6 -> deleteMovie();
             }
-
         }
     }
-    //TODO när man skriver in en filmtitel - kolla i databasen om den redan finns, felmeddelande att den inte finns om man söker/uppdaterar, felmeddelande att den redan finns när man ska lägga till
+
     private static Connection connect() {
         String url = "jdbc:sqlite:/Users/knish/Documents/Programmering/sqlite-tools-win-x64-3440200/labb3.db";
         Connection conn = null;
@@ -46,8 +44,6 @@ public class labb3 {
         System.out.println("\nVälj:\n");
         System.out.println("0  - Stäng av\n1  - Lägga till ny film\n2  - Visa filmer\n3  - sök efter film\n4  - Statistik\n5  - Uppdatera film\n6  - Ta bort film");
     }
-
-
     private static boolean isQuit() {
         System.out.println("\nStänger ner...");
         return true;
@@ -73,7 +69,6 @@ public class labb3 {
                 scanner.nextLine();
             }
         }
-
         return switch (action) {
             case 1 -> "1";
             case 2 -> "2";
@@ -142,62 +137,150 @@ public class labb3 {
 
 
     //INSERT MOVIES
-    private static void insertMovie() {
+    private static void insertMovieChoice() {
 
         boolean quit = false;
         while (!quit) {
-            printActionsForInsertMovies();
+            printActionsForInsertMovieChoice();
             int action = Integer.parseInt(scanner.nextLine());
             switch (action) {
                 case 0 -> quit = isCancel();
-                case 1 -> insertTheMovie();
+                case 1 -> insertMovie();
                 default -> System.out.println("Ogiltigt val, försök igen.");
             }
         }
     }
-    private static void printActionsForInsertMovies() {
+    private static void printActionsForInsertMovieChoice() {
         System.out.println("\nVälj:\n");
         System.out.println("0  - tillbaka\n1  - lägg till film");
     }
-
-    private static void insertTitle(String[] movie) {
-        System.out.println("ange titel:");
-        movie[0] =chooseMovieTitle();
+    private static void printActionsInputOrNotForInsertMovies() {
+        System.out.println("\nVälj:\n");
+        System.out.println("1  - Ja: mata in\n2  - Nej: hoppa över");
     }
+    private static boolean insertTitle(List<String> keys, List<String> values) {
 
-    private static void insertDirector(String[] movie) {
+        //TODO: DATABASEN Hänger sig om filmen inte finns i databasen
+            System.out.println("ange titel:");
+            String inTitle = chooseMovieTitle();
+            if (checkIfMovieExistsInDatabase(inTitle)){
+                System.out.println("Filmen finns redan i databasen.");
+                return true;}
+            else {
+                keys.add("movieTitle");
+                values.add(inTitle);
+                return false;
+            }
+    }
+    private static void insertDirector(List<String> keys, List<String> values) {
         System.out.println("ange regissör:");
-        movie[1] = scanner.nextLine();
+        keys.add("movieDirector");
+        values.add(scanner.nextLine());
     }
-    private static void insertLength(String[] movie) {
+    private static void insertLength(List<String> keys, List<String> values) {
         System.out.println("Ange filmens längd i minuter:");
-        movie[2] =  String.valueOf(chooseLengthOfMovie());
+        keys.add("movieLength");
+        values.add(String.valueOf(chooseLengthOfMovie()));
+    }
+    private static void insertMovie() {
+
+        List<String> keys = new ArrayList<>();
+        List<String> values = new ArrayList<>();
+
+        if (insertTitle(keys, values))
+            return;
+
+        System.out.println("Vill du lägga till regissör?");
+        optionToInputData(keys, values, 1);
+        System.out.println("Vill du lägga till filmens längd?");
+        optionToInputData(keys, values, 2);
+        System.out.println("Vill du lägga till betyg?");
+        optionToInputData(keys, values, 3);
+        System.out.println("Vill du lägga till kategori?");
+        optionToInputData(keys, values, 4);
+
+        if(addMovieQuestion())
+            return;
+
+        insertIntoMovieSql(keys, values);
+    }
+    private static boolean addMovieQuestion() {
+        System.out.println("Vill du lägga till filmen?(ja/nej)");
+        String choice = scanner.nextLine();
+        while (!choice.equalsIgnoreCase("ja") && !choice.equalsIgnoreCase("nej")) {
+            System.out.println("Felaktig inmatning. Vänligen svara med 'ja' eller 'nej'.");
+            choice = scanner.nextLine();
+        }
+        return choice.equalsIgnoreCase("nej");
+    }
+    private static void insertIntoMovieSql(List<String> keys, List<String> values) {
+        String sql = "INSERT INTO movie("+ joinKeysToString(keys) +") VALUES("+ geIndexRangeFromValues(values) + ")";
+        insertUpdateMovieDatabase(values, sql);
+    }
+    private static void optionToInputData(List<String> keys, List<String> values, int method) {
+        boolean next = false;
+        while (!next) {
+            printActionsInputOrNotForInsertMovies();
+            int action = Integer.parseInt(scanner.nextLine());
+            switch (action) {
+                case 1 -> inputData(keys, values,method); 
+                case 2 -> next = nextChoice();
+                default -> System.out.println("Ogiltigt val, försök igen.");
+            }
+        if (action == 1)
+            next = true;
+        }
+    }
+    private static void inputData(List<String> keys, List<String> values, int method) {
+
+        switch (method) {
+            case 1 -> insertDirector(keys, values);
+            case 2 -> insertLength(keys, values);
+            case 3 -> insertScore(keys, values);
+            case 4 -> insertCategory(keys, values);
+        }
+
 
     }
-    private static void insertTheMovie() {
-        String[] movie = new String[5];
-
-        insertTitle(movie);
-        insertDirector(movie);
-        insertLength(movie);
-        insertScore(movie);
-        insertCategory(movie);
-        String title = movie[0];
-        String director = movie[1];
-        int movieLength = Integer.parseInt(movie[2]);
-        int movieScore = Integer.parseInt(movie[3]);
-        int CategoryId = Integer.parseInt(movie[4]);
-        insertIntoMovie(title, director, movieLength, movieScore, CategoryId);
+    private static boolean nextChoice() {
+    return true;
     }
-    private static void insertCategory(String[] movie) {
-        movie[4] = selectCategory();
+    private static void insertCategory(List<String> keys, List<String> values) {
+        keys.add("movieCategoryId");
+        values.add(selectCategory());
     }
-    private static void insertScore(String[] movie) {
+    private static void insertScore(List<String> keys, List<String> values) {
         System.out.println("Ange betyg 0-5 på filmen:");
-        movie[3] = chooseScore0To5();
+        keys.add("movieScore");
+        values.add(chooseScore0To5());
     }
+    private static void insertUpdateMovieDatabase(List<String> values, String sql) {
+        
+        try {
+            Connection conn = connect();
+            PreparedStatement pstmt = conn.prepareStatement(sql);
+            createPreparedStatements(values, pstmt);
 
-    private static void insertIntoMovie(String inTitle, String inDirector, int inLength, int inScore, int inMovieCategory) {
+            pstmt.executeUpdate();
+            System.out.println("Du har lagt till en ny film");
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+    private static void createPreparedStatements(List<String> values, PreparedStatement pstmt) throws SQLException {
+        for (int i = 0; i < values.size(); i++) {
+            pstmt.setString(i + 1, values.get(i));
+        }
+    }
+    private static String joinKeysToString(List<String> keys) {
+        return String.join(",", keys);
+    }
+    private static String geIndexRangeFromValues(List<String> values) {
+        return IntStream.range(0, values.size())
+                .mapToObj(i -> "?")
+                .collect(Collectors.joining(","));
+    }
+    private static void insertIntoMovieOld(String inTitle, String inDirector, int inLength, int inScore, int inMovieCategory) {
         String sql = "INSERT INTO movie(movieTitle,movieDirector,movieLength,movieScore,movieCategoryId) VALUES(?,?,?,?,?)";
 
         try {
@@ -216,8 +299,22 @@ public class labb3 {
         }
 
     }
+    private static boolean checkIfMovieExistsInDatabase(String inTitle) {
+        String sql = "SELECT movieTitle FROM movie WHERE movieTitle = ?";
 
+        try {
+            Connection conn = connect();
+            PreparedStatement pstmt = conn.prepareStatement(sql);
+            pstmt.setString(1, inTitle);
 
+            ResultSet rs = pstmt.executeQuery();
+
+            return rs.next();
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+            return false;
+        }
+    }
 
 
     // SELECT MOVIES
@@ -255,14 +352,40 @@ public class labb3 {
                 7  - visa alla filmer som är kortare än
                 \s""");
     }
+
     private static void selectAll() {
+
+        boolean quit = false;
+        while (!quit) {
+            printActionsForSelectAll();
+            int action = Integer.parseInt(scanner.nextLine());
+            switch (action) {
+                case 0 -> quit = isCancel();
+                case 1 -> selectAllShowMoviesWithLeftJoin();
+                case 2 -> selectAllMoviesWithInnerJoin();
+                default -> System.out.println("Ogiltigt val, försök igen.");
+            }
+        }
+    }
+    private static void printActionsForSelectAll() {
+        System.out.println("\nVälj:\n");
+        System.out.println("0  - tillbaka\n1  - visa alla filmer\n2  - visa alla filmer efter fallande betyg");
+    }
+    private static void selectAllShowMoviesWithLeftJoin(){
+        String sql = """
+                SELECT *
+                FROM movie
+                LEFT JOIN category ON movie.movieCategoryId = category.categoryId;
+                ;""";
+        selectMoviesToViewFromSql(sql);
+    }
+    private static void selectAllMoviesWithInnerJoin() {
         String sql = """
                 SELECT category.categoryName, movie.movieTitle, movie.movieScore, movie.movieDirector, movie.movieLength
                 FROM category INNER JOIN movie ON category.categoryId = movie.movieCategoryId
                 ORDER BY movieScore DESC;""";
 
         selectMoviesToViewFromSql(sql);
-
     }
     private static void selectAllFavourites() {
         String sql = """
@@ -398,7 +521,6 @@ public class labb3 {
     }
 
 
-
     //STATISTICS
     private static void statistics() {
 
@@ -488,10 +610,14 @@ public class labb3 {
 
     // UPDATE MOVIES
 
-
     private static void updateMovie(){
         System.out.println("vilken film vill du uppdatera?");
         String movie = scanner.nextLine();
+
+        if (!checkIfMovieExistsInDatabase(movie)) {
+            System.out.println("Filmen finns inte i databasen.");
+            return;
+        } //TODO: DATABASEN LÅSER SIG NÄR JAG GÖR EN CHECK INNAN JAG UPPDATERA/TAR BORT
 
         boolean quit = false;
 
@@ -626,7 +752,6 @@ public class labb3 {
             System.out.println(var13.getMessage());
         }
     }
-
     private static void updateFavourite(String inTitle) {
         System.out.println("Favorit? Ja/nej");
         boolean validScore = false;
@@ -699,12 +824,14 @@ public class labb3 {
     }
 
 
-
-
     //DELETE
     private static void deleteMovie() {
         System.out.println("Skriv in filmen som ska tas bort: ");
         String inputMovie = scanner.nextLine();
+        //if (!checkIfMovieExistsInDatabase(inputMovie)){
+        //    return;
+        //}
+        //TODO: Databasen låser sig
         delete(inputMovie);
     }
     private static void delete(String inTitle) {
