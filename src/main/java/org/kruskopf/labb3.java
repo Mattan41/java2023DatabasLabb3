@@ -160,7 +160,6 @@ public class labb3 {
     }
     private static boolean insertTitle(List<String> keys, List<String> values) {
 
-        //TODO: DATABASEN Hänger sig om filmen inte finns i databasen
             System.out.println("ange titel:");
             String inTitle = chooseMovieTitle();
             if (checkIfMovieExistsInDatabase(inTitle)){
@@ -280,30 +279,12 @@ public class labb3 {
                 .mapToObj(i -> "?")
                 .collect(Collectors.joining(","));
     }
-    private static void insertIntoMovieOld(String inTitle, String inDirector, int inLength, int inScore, int inMovieCategory) {
-        String sql = "INSERT INTO movie(movieTitle,movieDirector,movieLength,movieScore,movieCategoryId) VALUES(?,?,?,?,?)";
 
-        try {
-            Connection conn = connect();
-            PreparedStatement pstmt = conn.prepareStatement(sql);
-            pstmt.setString(1, inTitle);
-            pstmt.setString(2, inDirector);
-            pstmt.setInt(3, inLength);
-            pstmt.setInt(4, inScore);
-            pstmt.setInt(5, inMovieCategory);
-
-            pstmt.executeUpdate();
-            System.out.println("Du har lagt till en ny film");
-        } catch (SQLException var6) {
-            System.out.println(var6.getMessage());
-        }
-
-    }
     private static boolean checkIfMovieExistsInDatabase(String inTitle) {
         String sql = "SELECT movieTitle FROM movie WHERE movieTitle = ?";
 
+        Connection conn = connect();
         try {
-            Connection conn = connect();
             PreparedStatement pstmt = conn.prepareStatement(sql);
             pstmt.setString(1, inTitle);
 
@@ -313,6 +294,14 @@ public class labb3 {
         } catch (SQLException e) {
             System.out.println(e.getMessage());
             return false;
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.close(); // <-- This is important
+                } catch (SQLException e) {
+                    System.out.println(e.getMessage());
+                }
+            }
         }
     }
 
@@ -494,7 +483,13 @@ public class labb3 {
 
     private static void inputMovieTitle() {
         System.out.println("ange filmtitel");
-        selectMovieToView(chooseMovieTitle());
+        String movie = chooseMovieTitle();
+
+        if (!checkIfMovieExistsInDatabase(movie)) {
+            System.out.println("Filmen finns inte i databasen.");
+            return;
+        }
+        selectMovieToView(movie);
     }
     private static void selectMovieToView(String inTitle) {
         String sql = "SELECT category.categoryName, movie.movieTitle, movie.movieScore, movie.movieDirector, movie.movieLength\n" +
@@ -617,7 +612,7 @@ public class labb3 {
         if (!checkIfMovieExistsInDatabase(movie)) {
             System.out.println("Filmen finns inte i databasen.");
             return;
-        } //TODO: DATABASEN LÅSER SIG NÄR JAG GÖR EN CHECK INNAN JAG UPPDATERA/TAR BORT
+        }
 
         boolean quit = false;
 
@@ -828,10 +823,11 @@ public class labb3 {
     private static void deleteMovie() {
         System.out.println("Skriv in filmen som ska tas bort: ");
         String inputMovie = scanner.nextLine();
-        //if (!checkIfMovieExistsInDatabase(inputMovie)){
-        //    return;
-        //}
-        //TODO: Databasen låser sig
+        if (!checkIfMovieExistsInDatabase(inputMovie)){
+            System.out.println("Filmen finns inte i databasen");
+            return;
+        }
+
         delete(inputMovie);
     }
     private static void delete(String inTitle) {
