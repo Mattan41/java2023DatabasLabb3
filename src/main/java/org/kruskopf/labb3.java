@@ -33,7 +33,7 @@ public class labb3 {
 
 
     private static Connection connect() {
-        String url = "jdbc:sqlite:/Users/knish/Documents/Programmering/sqlite-tools-win-x64-3440200/labb3.db";
+        String url = "jdbc:sqlite:/Users/knish/Documents/Programmering/databas/Java2023MatsKruskopfEriksson.db";
         Connection conn = null;
 
         try {
