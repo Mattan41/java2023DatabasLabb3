@@ -13,19 +13,24 @@ public class labb3 {
 
         while (!quit) {
             printActions();
-            int action = Integer.parseInt(scanner.nextLine());
-
-            switch (action) {
-                case 0 -> quit = isQuit();
-                case 1 -> insertMovieChoice();
-                case 2 -> selectMovie();
-                case 3 -> searchMovie();
-                case 4 -> statistics();
-                case 5 -> updateMovie();
-                case 6 -> deleteMovie();
+            try {
+                int action = Integer.parseInt(scanner.nextLine());
+                switch (action) {
+                    case 0 -> quit = isQuit();
+                    case 1 -> insertMovieChoice();
+                    case 2 -> selectMovie();
+                    case 3 -> searchMovie();
+                    case 4 -> statistics();
+                    case 5 -> updateMovie();
+                    case 6 -> deleteMovie();
+                    default -> System.out.println("Felaktigt format, försök igen.");
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Felaktigt format, försök igen.");
             }
         }
     }
+
 
     private static Connection connect() {
         String url = "jdbc:sqlite:/Users/knish/Documents/Programmering/sqlite-tools-win-x64-3440200/labb3.db";
@@ -138,15 +143,18 @@ public class labb3 {
 
     //INSERT MOVIES
     private static void insertMovieChoice() {
-
         boolean quit = false;
         while (!quit) {
             printActionsForInsertMovieChoice();
-            int action = Integer.parseInt(scanner.nextLine());
-            switch (action) {
-                case 0 -> quit = isCancel();
-                case 1 -> insertMovie();
-                default -> System.out.println("Ogiltigt val, försök igen.");
+            try {
+                int action = Integer.parseInt(scanner.nextLine());
+                switch (action) {
+                    case 0 -> quit = isCancel();
+                    case 1 -> insertMovie();
+                    default -> System.out.println("Ogiltigt val, försök igen.");
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Felaktigt format, försök igen.");
             }
         }
     }
@@ -220,16 +228,21 @@ public class labb3 {
         boolean next = false;
         while (!next) {
             printActionsInputOrNotForInsertMovies();
-            int action = Integer.parseInt(scanner.nextLine());
-            switch (action) {
-                case 1 -> inputData(keys, values,method); 
-                case 2 -> next = nextChoice();
-                default -> System.out.println("Ogiltigt val, försök igen.");
+            try {
+                int action = Integer.parseInt(scanner.nextLine());
+                switch (action) {
+                    case 1 -> inputData(keys, values,method);
+                    case 2 -> next = nextChoice();
+                    default -> System.out.println("Ogiltigt val, försök igen.");
+                }
+                if (action == 1)
+                    next = true;
+            } catch (NumberFormatException e) {
+                System.out.println("Fel format, försök igen.");
             }
-        if (action == 1)
-            next = true;
         }
     }
+
     private static void inputData(List<String> keys, List<String> values, int method) {
 
         switch (method) {
@@ -238,8 +251,6 @@ public class labb3 {
             case 3 -> insertScore(keys, values);
             case 4 -> insertCategory(keys, values);
         }
-
-
     }
     private static boolean nextChoice() {
     return true;
@@ -297,7 +308,7 @@ public class labb3 {
         } finally {
             if (conn != null) {
                 try {
-                    conn.close(); // <-- This is important
+                    conn.close();
                 } catch (SQLException e) {
                     System.out.println(e.getMessage());
                 }
@@ -602,7 +613,6 @@ public class labb3 {
         System.out.println("0  - tillbaka\n1  - visa antal filmer med betyg: \n2  - visa högsta betyg inom en kategori \n3  - visa medelbetyg för filmer av en regissör \n4  - visa antal filmer av en regissör inom en viss kategori");
     }
 
-
     // UPDATE MOVIES
 
     private static void updateMovie(){
@@ -817,7 +827,6 @@ public class labb3 {
             System.out.println(var13.getMessage());
         }
     }
-
 
     //DELETE
     private static void deleteMovie() {
